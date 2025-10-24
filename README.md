@@ -12,7 +12,7 @@
    **Note:** Make sure to install Python 3.11 or replace 3.11 with your version. You can change the name of the virtual environment `venv311` as you like.
 2. Run the virtual environment: `.\venv311\Scripts\activate`
 3. Install all the required libraries: `pip install -r requirements.txt`
-4. Run the script: `python capture_video.py` to see if the webcam is working
+4. Run the script: `python hand_tracking.py` to try it out!
 5. Deactivate the virtual environment once you're done: `deactivate`
 
 **NOTE**: Make sure your virtual environment (e.g. `venv311`) is included in your `.gitignore` if you are going to push to the repository. As default, `venv311` is already included in `.gitignore`.
