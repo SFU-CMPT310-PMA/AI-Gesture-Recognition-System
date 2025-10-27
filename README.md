@@ -16,3 +16,7 @@
 5. Deactivate the virtual environment once you're done: `deactivate`
 
 **NOTE**: Make sure your virtual environment (e.g. `venv311`) is included in your `.gitignore` if you are going to push to the repository. As default, `venv311` is already included in `.gitignore`.
+
+Exit the venv with "deactivate"
+
+Note: any command containing `python` or `pip` may instead need to be executed with `python3.11` or `pip3.11`
