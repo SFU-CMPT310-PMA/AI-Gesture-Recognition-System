@@ -49,10 +49,15 @@ def makeModel(inputDimension: int):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
-def controller(path):
+def getDataset(path):
     data: pd.DataFrame = pd.read_csv(path, sep=",")
     y: pd.DataFrame = data["label"]
     X: pd.DataFrame = data.iloc[:, 1:]
+
+    return y, X
+
+def controller(path):
+    y: pd.DataFrame; X: pd.DataFrame = getDataset(path)
     model = makeModel(len(X.shape[1]))
     runModel(model, X, y)
 
