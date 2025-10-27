@@ -4,11 +4,16 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import cv2
 import time
+from mediapipe.framework.formats import landmark_pb2
+draw_landmark = mp.solutions.drawing_utils  # drawing tools
+draw_styles = mp.solutions.drawing_styles # drawing colours
+mp_hands = mp.solutions.hands
 
 detector = None
 hand_landmarker_result = None
 
 def print_result(result: mp.tasks.vision.HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+    global hand_landmarker_result
     hand_landmarker_result = result
     print("Hand Landmarker Result: {}".format(result))
 
@@ -70,8 +75,6 @@ def main():
         # Prepare data
         mp_image = mp.Image(image_format = mp.ImageFormat.SRGB, data=frame)
 
-
-
         """
         4. Run detectection and Show the handlandmark result
         """
@@ -84,7 +87,35 @@ def main():
         """
         5. TO-DO 1: Visualize the result
         """
-        
+        # If our hand landmark results aren't valid skip since nothing to visualize
+        if hand_landmarker_result and hand_landmarker_result.hand_landmarks:
+            # Note: you may see some informational startup logs at the beginning.
+            for hand_landmarks in hand_landmarker_result.hand_landmarks:
+                # Draw the hand landmarks using x,y,z coordinates
+                # Note : Must be in NormalizedLandmarkList format
+                hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+                for landmark in hand_landmarks:
+                    landmark = landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z)
+                    hand_landmarks_proto.landmark.append(landmark)
+
+                # Draw the landmarks on the OpenCV frame
+                draw_landmark.draw_landmarks(
+                    image = frame,
+                    landmark_list = hand_landmarks_proto,
+                    connections = mp_hands.HAND_CONNECTIONS, 
+                    # landmark points specs
+                    landmark_drawing_spec=draw_landmark.DrawingSpec( 
+                        color = (0, 153, 76),   # colours for landmarks, uses BGR 
+                        thickness = 2,         # line thickness for points
+                        circle_radius = 2),    # each points radius
+                    # landmark connection lines specs
+                    connection_drawing_spec=draw_landmark.DrawingSpec(
+                        color = (102, 255, 178), # connection color, uses BGR
+                        thickness = 2)         # line thickness for connection
+                )
+                """
+                5. TODO 2: Add a label that shows either rock/paper/scissors/unknown
+                """
 
 
         # Show the live webcam
