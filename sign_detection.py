@@ -1,7 +1,4 @@
 import tensorflow as tf
-# from tensorflow.keras.models import Sequential
-# from tensorflow.keras.layers import Dense
-# from tensorflow.keras.utils import to_categorical
 import numpy as np
 import sys
 from enum import Enum
@@ -23,16 +20,18 @@ def dataTranslator(inputData):
 
 def test():
     inputIdx = 1
-    if sys.argv[inputIdx] == "testInputData":
-        inputData = [
-            [1.0, 2.0, 3.0],
-            [4.0, 3.2, 0.5],
-            [0.1, 2.8, 9.0] 
-        ]
-        translatedData = dataTranslator(inputData)
-        inputIdx += 1
-    if len(sys.argv) > inputIdx and sys.argv[inputIdx] == "Dummy":
-        print("Run another test")
+    while len(sys.argv) > inputIdx:
+        if sys.argv[inputIdx] == "testInputData":
+            inputData = [
+                [1.0, 2.0, 3.0],
+                [4.0, 3.2, 0.5],
+                [0.1, 2.8, 9.0] 
+            ]
+            translatedData = dataTranslator(inputData)
+            inputIdx += 1
+            print(translatedData)
+        if len(sys.argv) > inputIdx and sys.argv[inputIdx] == "Dummy":
+            print("Run another test")
 
 def runModel(model, X, y):
     yEncoded = tf.keras.utils.to_categorical(y, len(HandSign))
@@ -58,7 +57,7 @@ def getDataset(path):
 
 def controller(path):
     y: pd.DataFrame; X: pd.DataFrame = getDataset(path)
-    model = makeModel(len(X.shape[1]))
+    model = makeModel(X.shape[1])
     runModel(model, X, y)
 
 def main():
