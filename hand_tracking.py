@@ -91,7 +91,7 @@ def main():
         exit()
 
     print("\n=== DATA COLLECTION MODE ===")
-    print("Press 'r' for Rock ✊, 'p' for Paper 🖐️, 's' for Scissors ✌️, 'u' for Undefined")
+    print("Press 'r' for Rock ✊, 'p' for Paper 🖐️, 's' for Scissors ✌️")
     print("Press 'q' to quit\n")
 
     while True:
@@ -155,8 +155,7 @@ def main():
                 """
                 5. TODO: Add a label that shows either rock/paper/scissors/unknown
                 """
-                
-        # IF hand detected
+        
         if hand_landmarker_result and hand_landmarker_result.hand_landmarks:
             # Draw landmarks
             draw_landmarks(frame, hand_landmarker_result.hand_landmarks[0])
@@ -173,9 +172,9 @@ def main():
             break
         elif cv2.getWindowProperty('Rock-Paper-Scissors Recognition', cv2.WND_PROP_VISIBLE) < 1:
             break
-        elif key in [ord('r'), ord('p'), ord('s'), ord('u')]:
+        elif key in [ord('r'), ord('p'), ord('s')]:
             if hand_landmarker_result and hand_landmarker_result.hand_landmarks:
-                label = {ord('r'): "rock", ord('p'): "paper", ord('s'): "scissors", ord('u'): "undefined"}[key]
+                label = {ord('r'): "rock", ord('p'): "paper", ord('s'): "scissors"}[key]
                 save_landmarks_to_csv(label, hand_landmarker_result.hand_landmarks[0])
                 print(f"[SAVED] {label.upper()} sample recorded.")
             else:
