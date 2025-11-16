@@ -14,7 +14,7 @@ class HandSign(Enum):
     ROCK = 0
     PAPER = 1
     SCISSORS = 2
-    # UNKNOWN = 3       # Remove for now to test the model
+    UNDEFINED = 3       # Remove for now to test the model
 
 def dataTranslator(inputData):
     # inputData is of type int[21][3]
@@ -153,7 +153,7 @@ def makeModel(inputDimension: int, normalizer):
     model.add(normalizer)
     model.add(tf.keras.layers.Dense(64, input_dim=inputDimension, activation='relu'))
     model.add(tf.keras.layers.Dense(32, activation='relu'))
-    model.add(tf.keras.layers.Dense(3, activation='softmax'))
+    model.add(tf.keras.layers.Dense(len(HandSign), activation='softmax'))
 
     model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
     return model
