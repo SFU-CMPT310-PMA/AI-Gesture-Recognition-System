@@ -42,7 +42,6 @@ def save_landmarks_to_csv(label, landmarks):
         for landmark in landmarks:
             row.extend([landmark.x, landmark.y, landmark.z])
         writer.writerow(row)
-        #print(f"✅ Saved {label} sample")
 
 def main():
     """
@@ -158,19 +157,15 @@ def main():
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
+        elif cv2.getWindowProperty('Rock-Paper-Scissors Recognition', cv2.WND_PROP_VISIBLE) < 1:
+            break
         elif key in [ord('r'), ord('p'), ord('s')]:
             if hand_landmarker_result and hand_landmarker_result.hand_landmarks:
                 label = {ord('r'): "rock", ord('p'): "paper", ord('s'): "scissors"}[key]
                 save_landmarks_to_csv(label, hand_landmarker_result.hand_landmarks[0])
                 print(f"[SAVED] {label.upper()} sample recorded.")
             else:
-                print("[WARNING] No hand detected. Try again.")
-
-        '''# Close the window
-        if cv2.waitKey(1) == ord('q'):
-            break
-        if cv2.getWindowProperty('Rock-Paper-Scissors Recognition', cv2.WND_PROP_VISIBLE) < 1:
-            break'''
+                print("[WARNING] No hand detected. Try again.")        
 
     cam.release()
     cv2.destroyAllWindows()
