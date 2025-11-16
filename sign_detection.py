@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Normalization
+from sklearn.model_selection import KFold
 
 
 class HandSign(Enum):
@@ -93,7 +94,28 @@ def prepareDataset(X, y):
 
 
 
-##################################  PREDICT AND EVALUATE MODEL FUNCTIONS     ##################################    
+##################################  PREDICT AND EVALUATE MODEL FUNCTIONS     ################################## 
+def evaluateKFold(model, X, y, normalizer):
+    k: int = 10
+    skf = KFold(n_splits=k, shuffle= True, random_state= 42)
+    accuracies = []
+
+    for i, (train_index, test_index) in enumerate(skf.split(X, y)):
+        X_train, y_train = X[train_index], y[train_index]
+        X_test, y_test = X[test_index], y[test_index]
+
+        yEncodedTrain = tf.keras.utils.to_categorical(toIntHandSign(y_train), len(HandSign)) 
+        yEncodedTest = tf.keras.utils.to_categorical(toIntHandSign(y_test), len(HandSign)) 
+
+        model = makeModel(inputDimension=X.shape[1], normalizer=normalizer)
+        model.fit(X_train, yEncodedTrain, epochs=50, batch_size=32, verbose=0)
+        test_loss, test_accuracy = model.evaluate(X_test, yEncodedTest, verbose=0)
+        accuracies.append(test_accuracy)
+
+    print(f'Average Test Accuracy with KFold: {np.mean(accuracies) * 100:.2f}%')
+
+
+
 def runModel(model, X_train, y_train, X_test, y_test):
     numEpochs: int = 50
     batchSize: int = 32
@@ -184,6 +206,7 @@ def controller(path):
     model = makeModel(X.shape[1], normalizer)
     y_pred = runModel(model, X_train, y_train, X_test, y_test)
     comparePrediction(y_pred, y_test)
+    evaluateKFold(model, X, y, normalizer)
 
 
 def main():
