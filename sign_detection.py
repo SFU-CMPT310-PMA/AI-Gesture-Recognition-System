@@ -34,7 +34,7 @@ def test():
         if len(sys.argv) > inputIdx and sys.argv[inputIdx] == "Dummy":
             print("Run another test")
 
-
+##################################  CLEAN AND PREPARE THE DATASET     ##################################
 def toIntHandSign(y):
     '''
     Argument:   Label y in numpy array
@@ -62,6 +62,7 @@ def comparePrediction(y_pred, y_test):
     '''
     Write result to csv file to compare the true label vs prediction
     '''
+    y_test = toLabelHandSigns(np.argmax(y_test, axis= 1))
     data_compare = pd.DataFrame({'Predicted': y_pred, 'True': y_test, 'Correctness': y_pred == y_test})
     data_compare = data_compare.to_csv('compare_prediction.csv', sep=",")
 
@@ -77,11 +78,13 @@ def prepareDataset(X, y):
 
     # Split the Dataset and Train the Model
     X_train, X_test, y_train, y_test = train_test_split(X, yEncoded, test_size=0.8, random_state=42)
-    y_test = toLabelHandSigns(np.argmax(y_test, axis= 1))
     return X_train, y_train, X_test, y_test
 
 
-def runModel(model, X_train, y_train, X_test):
+
+
+##################################  PREDICT AND EVALUATE MODEL FUNCTIONS     ##################################    
+def runModel(model, X_train, y_train, X_test, y_test):
     numEpochs: int = 50
     batchSize: int = 32
 
@@ -93,6 +96,11 @@ def runModel(model, X_train, y_train, X_test):
     y_pred_distribution = model.predict(X_test)
     y_pred = np.argmax(y_pred_distribution, axis= 1)
     y_pred_label = toLabelHandSigns(y_pred)
+
+    #Evaluate the Model
+    test_loss, test_accuracy = model.evaluate(X_test, y_test, verbose= 0)
+    print(f'Test Accuracy: {test_accuracy * 100:.2f}%')
+
     return y_pred_label
 
 
@@ -126,11 +134,13 @@ def getDataset(path):
     return y_nparray, X_nparray
 
 
+
+##################################  MAIN FUNCTION   ##################################
 def controller(path):
     y, X = getDataset(path)
     model = makeModel(X.shape[1])
     X_train, y_train, X_test, y_test= prepareDataset(X, y)
-    y_pred = runModel(model, X_train, y_train, X_test)
+    y_pred = runModel(model, X_train, y_train, X_test, y_test)
     comparePrediction(y_pred, y_test)
 
 
@@ -142,4 +152,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    print("Ran!")
+    print("Finished!")
