@@ -77,15 +77,17 @@ def prepareDataset(X, y):
 
     # Split the Dataset and Train the Model
     X_train, X_test, y_train, y_test = train_test_split(X, yEncoded, test_size=0.8, random_state=42)
-    X_train, X_val, y_train, y_val = train_test_split(X, yEncoded, test_size=0.75, random_state=42)
     y_test = toLabelHandSigns(np.argmax(y_test, axis= 1))
-    return X_train, y_train, X_test, y_test, X_val, y_val
+    return X_train, y_train, X_test, y_test
 
 
-def runModel(model, X_train, y_train, X_test, X_val, y_val):
+def runModel(model, X_train, y_train, X_test):
     numEpochs: int = 50
     batchSize: int = 32
-    model.fit(X_train, y_train, epochs=numEpochs, batch_size=batchSize, validation_data=(X_val, y_val))
+
+    # Train the Model
+    # Use 10% of training data for validation
+    model.fit(X_train, y_train, epochs=numEpochs, batch_size=batchSize, validation_split=0.1, verbose=1)
 
     # Predict the Labels
     y_pred_distribution = model.predict(X_test)
@@ -127,8 +129,8 @@ def getDataset(path):
 def controller(path):
     y, X = getDataset(path)
     model = makeModel(X.shape[1])
-    X_train, y_train, X_test, y_test, X_val, y_val = prepareDataset(X, y)
-    y_pred = runModel(model, X_train, y_train, X_test, X_val, y_val)
+    X_train, y_train, X_test, y_test= prepareDataset(X, y)
+    y_pred = runModel(model, X_train, y_train, X_test)
     comparePrediction(y_pred, y_test)
 
 
