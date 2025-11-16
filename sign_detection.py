@@ -4,6 +4,7 @@ import sys
 from enum import Enum
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 class HandSign(Enum):
     ROCK = 0
@@ -33,6 +34,7 @@ def test():
             print(translatedData)
         if len(sys.argv) > inputIdx and sys.argv[inputIdx] == "Dummy":
             print("Run another test")
+
 
 ##################################  CLEAN AND PREPARE THE DATASET     ##################################
 def toIntHandSign(y):
@@ -90,16 +92,19 @@ def runModel(model, X_train, y_train, X_test, y_test):
 
     # Train the Model
     # Use 10% of training data for validation
-    model.fit(X_train, y_train, epochs=numEpochs, batch_size=batchSize, validation_split=0.1, verbose=1)
+    history = model.fit(X_train, y_train, epochs=numEpochs, batch_size=batchSize, validation_split=0.1, verbose=1)
 
     # Predict the Labels
     y_pred_distribution = model.predict(X_test)
     y_pred = np.argmax(y_pred_distribution, axis= 1)
     y_pred_label = toLabelHandSigns(y_pred)
 
-    #Evaluate the Model
+    # Evaluate the Model
     test_loss, test_accuracy = model.evaluate(X_test, y_test, verbose= 0)
     print(f'Test Accuracy: {test_accuracy * 100:.2f}%')
+
+    # Visualize Accuracy and Loss
+    plotAccuracyAndLoss(history)
 
     return y_pred_label
 
@@ -133,6 +138,29 @@ def getDataset(path):
     y_nparray = y.to_numpy()
     return y_nparray, X_nparray
 
+##################################  PLOT ACCURACY AND LOSS     ##################################    
+def plotAccuracyAndLoss(history):
+    plt.figure(figsize=(12,5))
+
+    #Plot Training and Validation Accuracy
+    plt.subplot(1, 2, 1)
+    plt.plot(history.history['accuracy'], label = 'Train Accuracy')
+    plt.plot(history.history['val_accuracy'], label = 'Validation Accuracy')
+    plt.title('Model Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    # Plot Training and Validation Loss
+    plt.subplot(1, 2, 2)
+    plt.plot(history.history['loss'], label = 'Train Loss')
+    plt.plot(history.history['val_loss'], label = 'Validation Loss')
+    plt.title('Model Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    plt.show()
 
 
 ##################################  MAIN FUNCTION   ##################################
