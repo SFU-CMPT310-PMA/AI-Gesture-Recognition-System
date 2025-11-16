@@ -5,6 +5,9 @@ from enum import Enum
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Normalization
+
 
 class HandSign(Enum):
     ROCK = 0
@@ -37,6 +40,11 @@ def test():
 
 
 ##################################  CLEAN AND PREPARE THE DATASET     ##################################
+def setUpNormalization(X_train):
+    normalizer = Normalization(axis = -1)
+    normalizer.adapt(X_train)
+    return normalizer
+
 def toIntHandSign(y):
     '''
     Argument:   Label y in numpy array
@@ -79,7 +87,7 @@ def prepareDataset(X, y):
     yEncoded = tf.keras.utils.to_categorical(yHandSignValue, len(HandSign))
 
     # Split the Dataset and Train the Model
-    X_train, X_test, y_train, y_test = train_test_split(X, yEncoded, test_size=0.8, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, yEncoded, test_size=0.2, random_state=42)
     return X_train, y_train, X_test, y_test
 
 
@@ -109,7 +117,7 @@ def runModel(model, X_train, y_train, X_test, y_test):
     return y_pred_label
 
 
-def makeModel(inputDimension: int):
+def makeModel(inputDimension: int, normalizer):
     '''
     Create the model with 3 layers: 
     Layer 1 = 64 neurons with RELU activation
@@ -117,11 +125,12 @@ def makeModel(inputDimension: int):
     Layer 3 = 3 neurons with Softmax
     '''
     model = tf.keras.Sequential()
+    model.add(normalizer)
     model.add(tf.keras.layers.Dense(64, input_dim=inputDimension, activation='relu'))
     model.add(tf.keras.layers.Dense(32, activation='relu'))
     model.add(tf.keras.layers.Dense(3, activation='softmax'))
 
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
     return model
 
 
@@ -137,6 +146,7 @@ def getDataset(path):
     X_nparray = X.to_numpy()
     y_nparray = y.to_numpy()
     return y_nparray, X_nparray
+
 
 ##################################  PLOT ACCURACY AND LOSS     ##################################    
 def plotAccuracyAndLoss(history):
@@ -166,8 +176,9 @@ def plotAccuracyAndLoss(history):
 ##################################  MAIN FUNCTION   ##################################
 def controller(path):
     y, X = getDataset(path)
-    model = makeModel(X.shape[1])
     X_train, y_train, X_test, y_test= prepareDataset(X, y)
+    normalizer = setUpNormalization(X_train)
+    model = makeModel(X.shape[1], normalizer)
     y_pred = runModel(model, X_train, y_train, X_test, y_test)
     comparePrediction(y_pred, y_test)
 
