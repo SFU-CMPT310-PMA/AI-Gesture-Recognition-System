@@ -14,7 +14,7 @@ class HandSign(Enum):
     ROCK = 0
     PAPER = 1
     SCISSORS = 2
-    UNDEFINED = 3       # Remove for now to test the model
+    UNDEFINED = 3
 
 def dataTranslator(inputData):
     # inputData is of type int[21][3]
