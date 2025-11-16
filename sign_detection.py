@@ -65,8 +65,10 @@ def comparePrediction(y_pred, y_test):
     data_compare = pd.DataFrame({'Predicted': y_pred, 'True': y_test, 'Correctness': y_pred == y_test})
     data_compare = data_compare.to_csv('compare_prediction.csv', sep=",")
 
-
-def runModel(model, X, y):
+def prepareDataset(X, y):
+    '''
+    Split the Dataset into training, test and validation test
+    '''
     # Convert the string labels to integer corresponding to HandSign
     yHandSignValue = toIntHandSign(y)    
 
@@ -74,17 +76,22 @@ def runModel(model, X, y):
     yEncoded = tf.keras.utils.to_categorical(yHandSignValue, len(HandSign))
 
     # Split the Dataset and Train the Model
-    X_train, X_test, y_train, y_test = train_test_split(X, yEncoded, test_size=0.33, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, yEncoded, test_size=0.8, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X, yEncoded, test_size=0.75, random_state=42)
     y_test = toLabelHandSigns(np.argmax(y_test, axis= 1))
+    return X_train, y_train, X_test, y_test, X_val, y_val
+
+
+def runModel(model, X_train, y_train, X_test, X_val, y_val):
     numEpochs: int = 50
     batchSize: int = 32
-    model.fit(X_train, y_train, epochs=numEpochs, batch_size=batchSize)
+    model.fit(X_train, y_train, epochs=numEpochs, batch_size=batchSize, validation_data=(X_val, y_val))
 
     # Predict the Labels
     y_pred_distribution = model.predict(X_test)
     y_pred = np.argmax(y_pred_distribution, axis= 1)
     y_pred_label = toLabelHandSigns(y_pred)
-    return y_pred_label, y_test
+    return y_pred_label
 
 
 def makeModel(inputDimension: int):
@@ -120,7 +127,8 @@ def getDataset(path):
 def controller(path):
     y, X = getDataset(path)
     model = makeModel(X.shape[1])
-    y_pred, y_test = runModel(model, X, y)
+    X_train, y_train, X_test, y_test, X_val, y_val = prepareDataset(X, y)
+    y_pred = runModel(model, X_train, y_train, X_test, X_val, y_val)
     comparePrediction(y_pred, y_test)
 
 
