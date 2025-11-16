@@ -114,6 +114,9 @@ def runModel(model, X_train, y_train, X_test, y_test):
     # Visualize Accuracy and Loss
     plotAccuracyAndLoss(history)
 
+    # Save model
+    model.save("model/sign_model.keras")
+
     return y_pred_label
 
 

@@ -6,12 +6,9 @@ from mediapipe.tasks.python import vision
 import cv2
 import time
 from mediapipe.framework.formats import landmark_pb2
-draw_landmark = mp.solutions.drawing_utils  # drawing tools
-draw_styles = mp.solutions.drawing_styles # drawing colours
-mp_hands = mp.solutions.hands
-
-detector = None
-hand_landmarker_result = None
+import tensorflow as tf
+import numpy as np
+from sign_detection import toLabelHandSigns
 
 # Draw landmarks on the frame
 def draw_landmarks(frame, landmarks):
@@ -20,12 +17,13 @@ def draw_landmarks(frame, landmarks):
         cx, cy = int(lm.x * w), int(lm.y * h)
         cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
 
+# Callback function for HandLandmarker
 def print_result(result: mp.tasks.vision.HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
-
     global hand_landmarker_result
     hand_landmarker_result = result
     
 
+# Save landmarks for the dataset
 def save_landmarks_to_csv(label, landmarks):
     file_path = "hand_gesture_dataset.csv"
     file_exists = os.path.isfile(file_path)
@@ -37,11 +35,23 @@ def save_landmarks_to_csv(label, landmarks):
             for i in range(21):
                 header += [f"x{i+1}", f"y{i+1}", f"z{i+1}"]
                 writer.writerow(header)
-
         row = [label]
         for landmark in landmarks:
             row.extend([landmark.x, landmark.y, landmark.z])
         writer.writerow(row)
+
+
+# Get feature vectors from the webcam
+def getXFeatures(handlandmark_results):
+    X = np.array([[landmark.x, landmark.y, landmark.z] for landmark in handlandmark_results]).flatten()
+    return X.reshape(1, -1)
+
+def predictLabels(model, X):
+    y_pred_distribution = model.predict(X, verbose = 0)
+    y_pred = np.argmax(y_pred_distribution, axis= 1)
+    y_pred_label = toLabelHandSigns(y_pred)
+    print(y_pred_label)
+    return y_pred_label
 
 def main():
     """
@@ -113,11 +123,9 @@ def main():
         detector.detect_async(mp_image, frame_timestamp)
 
 
-
         """
-        5. TO-DO 1: Visualize the result
+        5. Visualize the result
         """
-
         # If our hand landmark results aren't valid skip since nothing to visualize
         if hand_landmarker_result and hand_landmarker_result.hand_landmarks:
             # Note: you may see some informational startup logs at the beginning.
@@ -145,11 +153,16 @@ def main():
                         thickness = 2)         # line thickness for connection
                 )
                 """
-                5. TODO 2: Add a label that shows either rock/paper/scissors/unknown
+                5. TODO: Add a label that shows either rock/paper/scissors/unknown
                 """
-        # Draw landmarks if detected
+        
         if hand_landmarker_result and hand_landmarker_result.hand_landmarks:
+            # Draw landmarks
             draw_landmarks(frame, hand_landmarker_result.hand_landmarks[0])
+
+            #Predict the Label
+            X = getXFeatures(hand_landmarker_result.hand_landmarks[0])
+            y_pred = predictLabels(sign_model, X)
 
 
         # Show the live webcam
@@ -172,4 +185,13 @@ def main():
 
 
 if __name__ == "__main__":
+    draw_landmark = mp.solutions.drawing_utils  # drawing tools
+    draw_styles = mp.solutions.drawing_styles # drawing colours
+    mp_hands = mp.solutions.hands
+    detector = None
+    hand_landmarker_result = None
+
+
+    # Load the trained model
+    sign_model =  tf.keras.models.load_model('model/sign_model.keras')
     main()
