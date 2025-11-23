@@ -95,7 +95,7 @@ def prepareDataset(X, y):
 
 
 ##################################  PREDICT AND EVALUATE MODEL FUNCTIONS     ################################## 
-def evaluateKFold(model, X, y, normalizer):
+def evaluateKFold(model, X, y, normalizer, numEpochs, batchSize):
     k: int = 10
     skf = KFold(n_splits=k, shuffle= True, random_state= 42)
     accuracies = []
@@ -108,7 +108,7 @@ def evaluateKFold(model, X, y, normalizer):
         yEncodedTest = tf.keras.utils.to_categorical(toIntHandSign(y_test), len(HandSign)) 
 
         model = makeModel(inputDimension=X.shape[1], normalizer=normalizer)
-        model.fit(X_train, yEncodedTrain, epochs=50, batch_size=32, verbose=0)
+        model.fit(X_train, yEncodedTrain, epochs=numEpochs, batch_size=batchSize, verbose=0)
         test_loss, test_accuracy = model.evaluate(X_test, yEncodedTest, verbose=0)
         accuracies.append(test_accuracy)
 
@@ -116,10 +116,7 @@ def evaluateKFold(model, X, y, normalizer):
 
 
 
-def runModel(model, X_train, y_train, X_test, y_test):
-    numEpochs: int = 50
-    batchSize: int = 32
-
+def runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize):    
     # Train the Model
     # Use 10% of training data for validation
     history = model.fit(X_train, y_train, epochs=numEpochs, batch_size=batchSize, validation_split=0.1, verbose=1)
@@ -200,13 +197,18 @@ def plotAccuracyAndLoss(history):
 
 ##################################  MAIN FUNCTION   ##################################
 def controller(path):
+    numEpochs: int = 50
+    batchSize: int = 32
+
     y, X = getDataset(path)
     X_train, y_train, X_test, y_test= prepareDataset(X, y)
     normalizer = setUpNormalization(X_train)
+
     model = makeModel(X.shape[1], normalizer)
-    y_pred = runModel(model, X_train, y_train, X_test, y_test)
+    y_pred = runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize)
+
     comparePrediction(y_pred, y_test)
-    evaluateKFold(model, X, y, normalizer)
+    evaluateKFold(model, X, y, normalizer, numEpochs, batchSize)
 
 
 def main():
