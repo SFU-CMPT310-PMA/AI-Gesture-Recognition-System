@@ -17,7 +17,38 @@ def draw_landmarks(frame, landmarks):
         cx, cy = int(lm.x * w), int(lm.y * h)
         cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
 
-# Callback function for HandLandmarker
+def draw_label(frame, label_text, hand_landmarks):
+    h, w, _ = frame.shape
+    # find the landmark that's lowest on the screen
+    lowest_landmark = max(hand_landmarks,  key = lambda lm: lm.y)
+    x_pixel = int(lowest_landmark.x * w)
+    y_pixel = int(lowest_landmark.y * h)
+    box_width, box_height = 120, 30
+    overlay = frame.copy()
+
+    top_left_x = x_pixel - box_width // 2
+    bottom_right_x = x_pixel + box_width // 2
+    bottom_right_y = y_pixel + box_height
+
+    cv2.rectangle(
+        overlay,
+        (top_left_x, y_pixel),
+        (bottom_right_x, bottom_right_y),
+        (0, 0, 0),
+        -1  # thcikness, this indicates a solid fill
+    )
+    transparentAmt = 0.6
+    cv2.addWeighted(overlay, transparentAmt, frame, 1 - transparentAmt, 0, frame)
+    cv2.putText(
+        frame,
+        label_text,
+        (top_left_x + 5, y_pixel + 22),  # kinda offseted
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,  # font size
+        (255, 255, 255),  # text colour white
+        2  # thickness
+    )
+
 def print_result(result: mp.tasks.vision.HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
     global hand_landmarker_result
     hand_landmarker_result = result
@@ -52,6 +83,27 @@ def predictLabels(model, X):
     y_pred_label = toLabelHandSigns(y_pred)
     print(y_pred_label)
     return y_pred_label
+
+# https://stackoverflow.com/questions/14063070/overlay-a-smaller-image-on-a-larger-image-python-opencv
+# https://stackoverflow.com/questions/32290096/python-opencv-add-alpha-channel-to-rgb-image/32290192#32290192
+def window_border(img, img_overlay, pos = (0, 0), alpha_mask = None):
+    x, y = pos
+    ## fit background
+    y1, y2 = max(0, y), min(img.shape[0], y + img_overlay.shape[0])
+    x1, x2 = max(0, x), min(img.shape[1], x + img_overlay.shape[1])
+    ## overlay ranges
+    y1o, y2o = max(0, -y), min(img_overlay.shape[0], img.shape[0] - y)
+    x1o, x2o = max(0, -x), min(img_overlay.shape[1], img.shape[1] - x)
+    max_rgb = 255.0
+    
+    if alpha_mask is None:
+        alpha = (img_overlay[y1o:y2o, x1o:x2o, 3] / max_rgb)
+    else:
+        alpha = (alpha_mask[y1o:y2o, x1o:x2o] / max_rgb)
+
+    for colour in range(3): 
+        img[y1:y2, x1:x2, colour] = (1 - alpha) * img[y1:y2, x1:x2, colour] + alpha * img_overlay[y1o:y2o, x1o:x2o, colour]
+
 
 def main():
     """
@@ -89,6 +141,7 @@ def main():
     if not cam.isOpened():
         print("Cannot open camera. Exiting...")
         exit()
+    overlay_img = cv2.imread("images/overlay.png", cv2.IMREAD_UNCHANGED)
 
     print("\n=== DATA COLLECTION MODE ===")
     print("Press 'r' for Rock ✊, 'p' for Paper 🖐️, 's' for Scissors ✌️")
@@ -107,7 +160,9 @@ def main():
 
         # Mirror the frame
         frame = cv2.flip(frame, 1)
-
+        if overlay_img is not None:
+            overlay_resized = cv2.resize(overlay_img, (frame.shape[1], frame.shape[0]), interpolation = cv2.INTER_AREA)
+            window_border(frame, overlay_resized, pos=(0, 0))
 
         """
         3. Prepare frames from OpenCV and process it for MediaPipe
@@ -159,6 +214,7 @@ def main():
         if hand_landmarker_result and hand_landmarker_result.hand_landmarks:
             # Draw landmarks
             draw_landmarks(frame, hand_landmarker_result.hand_landmarks[0])
+            draw_label(frame, "unknown", hand_landmarks) 
 
             #Predict the Label
             X = getXFeatures(hand_landmarker_result.hand_landmarks[0])
