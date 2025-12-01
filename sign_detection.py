@@ -13,7 +13,7 @@ class HandSign(Enum):
     ROCK = 0
     PAPER = 1
     SCISSORS = 2
-    # UNKNOWN = 3       # Remove for now to test the model
+    # UNKNOWN = 3       
 
 def dataTranslator(inputData):
     # inputData is of type int[21][3]
@@ -153,40 +153,24 @@ def makeModel(inputDimension: int, normalizer):
     model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
     return model
 
-'''def getDataset(path):
-    # Try reading normally
-    data = pd.read_csv(path, sep=",")
-    if "label" not in data.columns:
-        # Rebuild header: 1 label + 63 features
-        header = ["label"] + [f"{axis}{i+1}" for i in range(21) for axis in ["x","y","z"]]
-        data = pd.read_csv(path, sep=",", names=header, header=None)
-    y = data["label"].to_numpy()
-    X = data.drop(columns=["label"]).to_numpy().astype("float32")
-    return y, X'''
-def getDataset(path):
-    # Read CSV
-    data = pd.read_csv(path, sep=",")
-    
-    # Rebuild header if missing
-    if "label" not in data.columns:
-        header = ["label"] + [f"{axis}{i+1}" for i in range(21) for axis in ["x","y","z"]]
-        data = pd.read_csv(path, sep=",", names=header, header=None)
+def getDataset(path, include_unknown=False):
+    data = pd.read_csv(path, sep=",", header=0)
 
-    # Filter out UNKNOWN samples
-    data = data[data["label"].str.lower() != "unknown"]
+    data = data.iloc[:, :64]
 
-    # Separate features and labels
-    X = data.drop(columns=["label"]).to_numpy().astype("float32")
-    y_raw = data["label"].str.lower().to_numpy()  # make lowercase for consistency
+    if not include_unknown:
+        data = data[data["label"].str.lower() != "unknown"]
 
-    # Map string labels to integers
+    data = data.dropna()
+
+    X = data.drop(columns=["label"]).to_numpy(dtype=np.float32)
+    y_str = data["label"].str.lower().to_numpy()
+
     label_map = {"rock": 0, "paper": 1, "scissors": 2}
-    y_int = np.array([label_map[lbl] for lbl in y_raw])
+    y_int = np.array([label_map[lbl] for lbl in y_str])
+    y_onehot = tf.keras.utils.to_categorical(y_int, num_classes=3)
 
-    # One-hot encode labels
-    y = tf.keras.utils.to_categorical(y_int, num_classes=3)
-
-    return y, X
+    return y_str, y_onehot, X
 
 
 ##################################  PLOT ACCURACY AND LOSS     ##################################    
@@ -214,19 +198,29 @@ def plotAccuracyAndLoss(history):
     plt.show()
 
 ##################################  MAIN FUNCTION   ##################################
+
+
 def controller(path):
-    numEpochs: int = 50
-    batchSize: int = 32
+    """
+    Main controller to prepare dataset, train the model, and evaluate.
+    """
+    from sign_detection import prepareDataset, setUpNormalization, makeModel, runModel, comparePrediction, evaluateKFold
 
-    y, X = getDataset(path)
-    X_train, y_train, X_test, y_test= prepareDataset(X, y)
+    numEpochs = 50
+    batchSize = 32
+
+    y_str, y_onehot, X = getDataset(path, include_unknown=False)
+
+    X_train, y_train, X_test, y_test = prepareDataset(X, y_str)
+
     normalizer = setUpNormalization(X_train)
-
     model = makeModel(X.shape[1], normalizer)
-    y_pred = runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize)
 
-    comparePrediction(y_pred, y_test)
-    evaluateKFold(model, X, y, normalizer, numEpochs, batchSize)
+    y_pred_labels = runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize)
+
+    comparePrediction(y_pred_labels, y_test)
+
+    evaluateKFold(model, X, y_str, normalizer, numEpochs, batchSize)
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1].find("test") == 0:

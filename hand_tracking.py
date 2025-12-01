@@ -10,7 +10,6 @@ import tensorflow as tf
 import numpy as np
 from sign_detection import predictLabels
 
-# Draw landmarks on the frame
 def draw_landmarks(frame, landmarks):
     for lm in landmarks:
         h, w, _ = frame.shape
@@ -20,7 +19,7 @@ def draw_landmarks(frame, landmarks):
 def draw_label(frame, label_text, hand_landmarks=None):
     h, w, _ = frame.shape
     if hand_landmarks and len(hand_landmarks) > 0:
-        # find the landmark that's lowest on the screen
+        
         lowest_landmark = max(hand_landmarks,  key=lambda lm: lm.y)
         x_pixel = int(lowest_landmark.x * w)
         y_pixel = int(lowest_landmark.y * h)
@@ -65,16 +64,14 @@ def save_landmarks_to_csv(label, landmarks):
     with open(file_path, mode='a', newline='') as file:
         writer = csv.writer(file)
         if not file_exists:
-            header = ["label"] + [f"{axis}{i+1}" for i in range(21) for axis in ["x","y","z"]]
+            header = ["label"]
+            for i in range(21):
+                header += [f"x{i+1}", f"y{i+1}", f"z{i+1}"]
             writer.writerow(header)
         row = [label]
         for landmark in landmarks:
             row.extend([landmark.x, landmark.y, landmark.z])
-        if len(row) == 64:
-            writer.writerow(row)
-            print(f"[SAVED] {label.upper()} sample recorded.")
-        else:
-            print(f"[WARNING] Row length {len(row)} != 64, skipping")
+        writer.writerow(row)
 
 # Get features from landmarks
 def getXFeatures(handlandmark_results):
@@ -189,19 +186,19 @@ def main():
                 hand_landmarks_proto.landmark.append(
                     landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z)
                 )
-            draw_landmark.draw_landmarks(
-                image=frame,
-                landmark_list=hand_landmarks_proto,
-                connections=mp_hands.HAND_CONNECTIONS,
-                landmark_drawing_spec=draw_landmark.DrawingSpec(color=(0,153,76), thickness=2, circle_radius=2),
-                connection_drawing_spec=draw_landmark.DrawingSpec(color=(102,255,178), thickness=2)
-            )
-
+            mp.solutions.drawing_utils.draw_landmarks(
+            frame,
+            hand_landmarks_proto,
+            mp.solutions.hands.HAND_CONNECTIONS,
+            mp.solutions.drawing_utils.DrawingSpec(color=(0,153,76), thickness=2, circle_radius=2),
+            mp.solutions.drawing_utils.DrawingSpec(color=(102,255,178), thickness=2)
+        )
+            
             # Predict label
             X = getXFeatures(landmarks)
             pred_label, pred_conf = predictLabels(sign_model, X)
 
-            if pred_conf < 0.3:
+            if pred_conf < 0.7:
                 pred_label = "UNKNOWN"
 
             draw_label(frame, f"{pred_label} ({pred_conf:.2f})", landmarks)
