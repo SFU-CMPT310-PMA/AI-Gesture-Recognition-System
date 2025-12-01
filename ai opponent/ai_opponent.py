@@ -3,8 +3,9 @@ import numpy as np
 class AIOpponent:
     """
         Predict and Move based on the last gesture/ move from the user
+        Adapt from: https://www.geeksforgeeks.org/machine-learning/markov-chain/
     """
-    
+
     def __init__(self):
         self.states = ["Rock", "Paper", "Scissors"]
         self.counts = np.ones((3,3))
