@@ -5,10 +5,9 @@ from enum import Enum
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Normalization
+from keras.optimizers import Adam
+from keras.layers import Normalization
 from sklearn.model_selection import KFold
-
 
 class HandSign(Enum):
     ROCK = 0
@@ -39,7 +38,6 @@ def test():
         if len(sys.argv) > inputIdx and sys.argv[inputIdx] == "Dummy":
             print("Run another test")
 
-
 ##################################  CLEAN AND PREPARE THE DATASET     ##################################
 def setUpNormalization(X_train):
     normalizer = Normalization(axis = -1)
@@ -47,16 +45,9 @@ def setUpNormalization(X_train):
     return normalizer
 
 def toIntHandSign(y):
-    '''
-    Argument:   Label y in numpy array
-    Task:       Convert y labels from string ("rock", "paper", "scissor") to 
-                Integer for the category match with HandSign
-    '''
-    try:
-        return np.array([HandSign[label.upper()].value for label in y])
-    except KeyError:
-        print("Invalid Key. Return None...")
-        return None
+    mapping = {"rock": 0, "paper": 1, "scissors": 2}
+    y_norm = [str(lbl).strip().lower() for lbl in y]
+    return np.array([mapping[lbl] for lbl in y_norm if lbl in mapping], dtype=np.int64)
 
 def toLabelHandSigns(y_pred):
     '''
@@ -93,7 +84,6 @@ def prepareDataset(X, y):
 
 
 
-
 ##################################  PREDICT AND EVALUATE MODEL FUNCTIONS     ################################## 
 def evaluateKFold(model, X, y, normalizer, numEpochs, batchSize):
     k: int = 10
@@ -114,7 +104,16 @@ def evaluateKFold(model, X, y, normalizer, numEpochs, batchSize):
 
     print(f'Average Test Accuracy with KFold: {np.mean(accuracies) * 100:.2f}%')
 
-
+def predictLabels(model, X):
+    """
+    Predict hand sign from features X.
+    Returns: (label_str, confidence_float)
+    """
+    y_pred_distribution = model.predict(X, verbose=0)
+    pred_conf = float(np.max(y_pred_distribution))
+    pred_index = int(np.argmax(y_pred_distribution))
+    pred_label = toLabelHandSigns(np.array([pred_index]))[0]
+    return pred_label, pred_conf
 
 def runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize):    
     # Train the Model
@@ -138,7 +137,6 @@ def runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize):
 
     return y_pred_label
 
-
 def makeModel(inputDimension: int, normalizer):
     '''
     Create the model with 3 layers: 
@@ -155,19 +153,40 @@ def makeModel(inputDimension: int, normalizer):
     model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
     return model
 
-
+'''def getDataset(path):
+    # Try reading normally
+    data = pd.read_csv(path, sep=",")
+    if "label" not in data.columns:
+        # Rebuild header: 1 label + 63 features
+        header = ["label"] + [f"{axis}{i+1}" for i in range(21) for axis in ["x","y","z"]]
+        data = pd.read_csv(path, sep=",", names=header, header=None)
+    y = data["label"].to_numpy()
+    X = data.drop(columns=["label"]).to_numpy().astype("float32")
+    return y, X'''
 def getDataset(path):
-    '''
-    1. Read dataset from the csv as a Pandas DataFrame
-    2. Separate input vector (X_nparray) and labels (y)
-    3. Convert X and y from DataFrame/Series to numpy array
-    '''
-    data: pd.DataFrame = pd.read_csv(path, sep=",", usecols=range(0, 64))
-    y: pd.DataFrame = data["label"]
-    X: pd.DataFrame = data.iloc[:, 1:]
-    X_nparray = X.to_numpy()
-    y_nparray = y.to_numpy()
-    return y_nparray, X_nparray
+    # Read CSV
+    data = pd.read_csv(path, sep=",")
+    
+    # Rebuild header if missing
+    if "label" not in data.columns:
+        header = ["label"] + [f"{axis}{i+1}" for i in range(21) for axis in ["x","y","z"]]
+        data = pd.read_csv(path, sep=",", names=header, header=None)
+
+    # Filter out UNKNOWN samples
+    data = data[data["label"].str.lower() != "unknown"]
+
+    # Separate features and labels
+    X = data.drop(columns=["label"]).to_numpy().astype("float32")
+    y_raw = data["label"].str.lower().to_numpy()  # make lowercase for consistency
+
+    # Map string labels to integers
+    label_map = {"rock": 0, "paper": 1, "scissors": 2}
+    y_int = np.array([label_map[lbl] for lbl in y_raw])
+
+    # One-hot encode labels
+    y = tf.keras.utils.to_categorical(y_int, num_classes=3)
+
+    return y, X
 
 
 ##################################  PLOT ACCURACY AND LOSS     ##################################    
@@ -194,7 +213,6 @@ def plotAccuracyAndLoss(history):
 
     plt.show()
 
-
 ##################################  MAIN FUNCTION   ##################################
 def controller(path):
     numEpochs: int = 50
@@ -209,7 +227,6 @@ def controller(path):
 
     comparePrediction(y_pred, y_test)
     evaluateKFold(model, X, y, normalizer, numEpochs, batchSize)
-
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1].find("test") == 0:
