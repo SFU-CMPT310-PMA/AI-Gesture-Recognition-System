@@ -100,9 +100,7 @@ async function onResults(results) {
   // set
   canvas.width = 640;
   canvas.height = 480;
-
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
   if (results.multiHandLandmarks?.length) {
     const lm = results.multiHandLandmarks[0];
@@ -223,6 +221,7 @@ video, canvas {
   width: 640px;
   height: 480px;
   border-radius: 8px;
+  transform: scaleX(-1);
 }
 
 .prediction-box {
