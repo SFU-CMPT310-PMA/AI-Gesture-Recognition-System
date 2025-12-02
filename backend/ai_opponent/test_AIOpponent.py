@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from ai_opponent import AIOpponent
+from backend.ai_opponent import AIOpponent
 
 """
     A unit test to check if the class AIOpponent works and return expected type
