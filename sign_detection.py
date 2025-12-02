@@ -167,6 +167,7 @@ def makeRandomModel(inputDimension, normalizer):
 
     model = tf.keras.Sequential()
     model.add(normalizer)
+    model.add(tf.keras.layers.Dense(64, input_dim=inputDimension, activation='relu'))
 
     # Add hidden layers
     for _ in range(num_hidden_layers):
