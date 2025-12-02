@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from keras.optimizers import Adam
 from keras.layers import Normalization
 from sklearn.model_selection import KFold
+import random
+import os
 
 class HandSign(Enum):
     ROCK = 0
@@ -153,6 +155,95 @@ def makeModel(inputDimension: int, normalizer):
     model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
     return model
 
+def makeRandomModel(inputDimension, normalizer):
+    """
+    Create a model with random hyperparameters.
+    """
+    # Random hyperparameters
+    hidden_units = random.choice(range(64))
+    num_hidden_layers = random.choice(range(4))
+    activation = random.choice(["relu", "tanh"])
+    learning_rate = random.uniform(0.0005, 0.005)
+
+    model = tf.keras.Sequential()
+    model.add(normalizer)
+
+    # Add hidden layers
+    for _ in range(num_hidden_layers):
+        model.add(tf.keras.layers.Dense(hidden_units, activation=activation))
+
+    # Output layer
+    model.add(tf.keras.layers.Dense(3, activation="softmax"))
+
+    model.compile(
+        loss="categorical_crossentropy",
+        optimizer=Adam(learning_rate=learning_rate),
+        metrics=["accuracy"],
+    )
+
+    # Return both model and the hyperparams for logging
+    return model, {"hidden_units": hidden_units,
+                   "num_hidden_layers": num_hidden_layers,
+                   "activation": activation,
+                   "learning_rate": learning_rate }
+
+def train_multiple_models(X_train, y_train, X_test, y_test, normalizer, plotAccuracies):
+    import os
+    os.makedirs("models", exist_ok=True)
+
+    results = []
+
+    for i in range(10):
+        print(f"\n==============================")
+        print(f"Training Model #{i+1}")
+        print("==============================")
+
+        model, hparams = makeRandomModel(X_train.shape[1], normalizer)
+
+        # Random training hyperparameters
+        numEpochs = random.choice(range(20, 50))
+        batchSize = random.choice(range(15))
+
+        print("Hyperparameters:", hparams)
+        print(f"Epochs: {numEpochs}, BatchSize: {batchSize}")
+
+        history = model.fit(X_train, 
+                            y_train,
+                            epochs=numEpochs,
+                            batch_size=batchSize,
+                            validation_split=0.1,
+                            verbose=0)
+
+        loss, acc = model.evaluate(X_test, y_test, verbose=0)
+        print(f"Test Accuracy: {acc:.4f}")
+
+        model_path = f"models/random_model_{i+1}.keras"
+        model.save(model_path)
+        print(f"Saved model to: {model_path}")
+
+        # Store: accuracy, model hyperparams, training hyperparams, model_path
+        results.append({"accuracy": acc,
+                        "model_hparams": hparams,
+                        "numEpochs": numEpochs,
+                        "batchSize": batchSize,
+                        "path": model_path})
+        
+        if plotAccuracies == 1:
+            plotAccuracyAndLoss(history)
+
+    # Sort by accuracy (best first)
+    results.sort(key=lambda x: x["accuracy"], reverse=True)
+    best = results[0]
+
+    print("\n\n===== BEST MODEL =====")
+    print("Accuracy:", best["accuracy"])
+    print("Model Hyperparams:", best["model_hparams"])
+    print("Epochs:", best["numEpochs"])
+    print("BatchSize:", best["batchSize"])
+    print("Saved:", best["path"])
+
+    return results, best
+
 def getDataset(path, include_unknown=False):
     data = pd.read_csv(path, sep=",", header=0)
 
@@ -222,12 +313,40 @@ def controller(path):
 
     evaluateKFold(model, X, y_str, normalizer, numEpochs, batchSize)
 
+def randomController(path, plotAccuracies):
+    y_str, _, X = getDataset(path, include_unknown=False)
+
+    X_train, y_train, X_test, y_test = prepareDataset(X, y_str)
+    normalizer = setUpNormalization(X_train)
+
+    _, best = train_multiple_models(X_train, y_train, X_test, y_test, normalizer, plotAccuracies)
+    best_model_path = best["path"]
+
+    best_model = tf.keras.models.load_model(best_model_path)
+    
+
+    evaluateKFold(best_model, X, y_str, normalizer, numEpochs=best["numEpochs"], batchSize=best["batchSize"])
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1].find("test") == 0:
         test()
+    elif len(sys.argv) > 1 and sys.argv[1].find("random") == 0:
+        if len(sys.argv) > 2 and sys.argv[2].find("plot") == 0:
+            randomController('hand_gesture_dataset.csv', 1)
+        else:
+            randomController('hand_gesture_dataset.csv', 0)
     else:
         controller('hand_gesture_dataset.csv')
 
 if __name__ == "__main__":
     main()
     print("Finished!")
+
+
+
+
+################################## HOW TO USE THIS FILE ##################################
+# Typical create 1 model: python3 sign_detection.py
+# Create 10 random models: python3 sign_detection.py random
+# Create 10 random models and plot each accuracy: python3 sign_detection.py random plot
