@@ -8,7 +8,7 @@ import time
 from mediapipe.framework.formats import landmark_pb2
 import tensorflow as tf
 import numpy as np
-from sign_detection import predictLabels
+from backend.sign_detection import toLabelHandSigns
 
 def draw_landmarks(frame, landmarks):
     for lm in landmarks:
