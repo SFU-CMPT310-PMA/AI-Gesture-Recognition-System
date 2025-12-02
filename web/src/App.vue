@@ -12,6 +12,11 @@ export default {
 </script>
 
 <style scoped>
+:global(body) {
+  background-color: rgb(255, 255, 255);
+}
+
+
 .logo {
   height: 6em;
   padding: 1.5em;

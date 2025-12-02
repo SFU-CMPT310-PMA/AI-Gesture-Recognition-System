@@ -207,6 +207,7 @@ function determineWinner(player, ai) {
   height: 100vh;
   margin: 0;
   padding: 0;
+  /* background: rgb(255, 255, 255); */
 }
 
 .camera-box {
@@ -239,6 +240,7 @@ video, canvas {
   font-size: 1.1rem;
   box-shadow: 0 0 10px #ccc;
   text-align: center;
+  color : rgb(7, 64, 7);
 }
 
 </style>
