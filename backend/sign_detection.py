@@ -195,7 +195,7 @@ def train_multiple_models(X_train, y_train, X_test, y_test, normalizer, plotAccu
 
     results = []
 
-    for i in range(2):
+    for i in range(10):
         print(f"\n==============================")
         print(f"Training Model #{i+1}")
         print("==============================")
