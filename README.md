@@ -13,7 +13,7 @@ You MUST be in the project’s root directory to run the program as being in oth
 2. Run the virtual environment: `.\venv311\Scripts\activate` or `source /venv311/bin/activate`
 3. Install all the required libraries: `pip install -r requirements.txt` <br>
 4. Run the script: `python hand_tracking.py` to try out the trained model on unseen data: your hand! <br>
-  ADD HOW TO RUN THE FULL THING HERE
+   Running the full game (with the AI opponent) is a little trickier. In one terminal, you must call `python server.py` and from a second terminal, you must `cd` into `web/`. From there, run `npm install` INSTALL VUE and `npm run dev`. Your current terminal will, after a little time, give some output in the form of a link which if visited, will allow you to play the game.
 5. Deactivate the virtual environment once you're done: `deactivate`
 
 **NOTE**: Make sure your virtual environment (e.g. `venv311`) is included in your `.gitignore` if you are going to push to the repository. As default, `venv311` is already included in `.gitignore`.
