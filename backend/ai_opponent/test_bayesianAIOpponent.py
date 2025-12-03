@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from backend.ai_opponent import BayesianAIOpponent
+from ai_opponent_original import BayesianAIOpponent
 
 """
     A unit test to check if the class BayesianAIOpponent works and return expected type
