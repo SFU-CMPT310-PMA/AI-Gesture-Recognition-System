@@ -3,6 +3,6 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
-  base: '/sfu-cmpt310-pma/',
+ plugins: [vue()],
+ base: '/SFU-CMPT310-PMA/',
 })
