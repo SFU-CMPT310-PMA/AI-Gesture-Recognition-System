@@ -1,5 +1,7 @@
 import cv2
 
+# Adapt from:
+# OpenCV: https://docs.opencv.org/4.x/dd/d43/tutorial_py_video_display.html
 # Create a VideoCapture object and Use the default camera
 cam = cv2.VideoCapture(0)
 

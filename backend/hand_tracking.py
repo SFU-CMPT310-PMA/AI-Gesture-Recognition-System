@@ -10,6 +10,11 @@ import tensorflow as tf
 import numpy as np
 from sign_detection import toLabelHandSigns
 
+
+# Adapt from:
+# OpenCV: https://docs.opencv.org/4.x/dd/d43/tutorial_py_video_display.html
+# MediaPipe: https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/hand_landmarker/python/hand_landmarker.ipynb#scrollTo=h2q27gKz1H20&uniqifier=1
+
 # Draw landmarks on the frame
 def draw_landmarks(frame, landmarks):
     for lm in landmarks:
