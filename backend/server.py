@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import numpy as np
 import tensorflow as tf
 
-model = tf.keras.models.load_model("model/sign_model.keras")
+model = tf.keras.models.load_model("backend/model/sign_model.keras")
 
 mapping = {0: "rock", 1: "paper", 2: "scissors"}
 
