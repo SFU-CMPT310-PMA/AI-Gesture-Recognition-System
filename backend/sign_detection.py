@@ -149,10 +149,10 @@ def makeModel(inputDimension: int, normalizer):
     model = tf.keras.Sequential()
     model.add(normalizer)
     model.add(tf.keras.layers.Dense(64, input_dim=inputDimension, activation='relu'))
-    model.add(tf.keras.layers.Dense(32, activation='relu'))
+    model.add(tf.keras.layers.Dense(20, activation='relu'))
     model.add(tf.keras.layers.Dense(3, activation='softmax'))
 
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.00367), metrics=['accuracy'])
     return model
 
 def makeRandomModel(inputDimension, normalizer):
