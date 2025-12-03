@@ -8,7 +8,7 @@ import time
 from mediapipe.framework.formats import landmark_pb2
 import tensorflow as tf
 import numpy as np
-from backend.sign_detection import toLabelHandSigns
+from sign_detection import toLabelHandSigns
 
 # Draw landmarks on the frame
 def draw_landmarks(frame, landmarks):
@@ -249,5 +249,5 @@ if __name__ == "__main__":
 
 
     # Load the trained model
-    sign_model =  tf.keras.models.load_model('model/sign_model.keras')
+    sign_model =  tf.keras.models.load_model('backend/model/sign_model.keras')
     main()
