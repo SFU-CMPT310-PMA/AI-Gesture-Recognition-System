@@ -5,18 +5,17 @@ from enum import Enum
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Normalization
+from keras.optimizers import Adam
+from keras.layers import Normalization
 from sklearn.model_selection import KFold
 import random
 import os
-
 
 class HandSign(Enum):
     ROCK = 0
     PAPER = 1
     SCISSORS = 2
-    # UNKNOWN = 3       # Remove for now to test the model
+    # UNKNOWN = 3       
 
 def dataTranslator(inputData):
     # inputData is of type int[21][3]
@@ -41,7 +40,6 @@ def test():
         if len(sys.argv) > inputIdx and sys.argv[inputIdx] == "Dummy":
             print("Run another test")
 
-
 ##################################  CLEAN AND PREPARE THE DATASET     ##################################
 def setUpNormalization(X_train):
     normalizer = Normalization(axis = -1)
@@ -49,16 +47,9 @@ def setUpNormalization(X_train):
     return normalizer
 
 def toIntHandSign(y):
-    '''
-    Argument:   Label y in numpy array
-    Task:       Convert y labels from string ("rock", "paper", "scissor") to 
-                Integer for the category match with HandSign
-    '''
-    try:
-        return np.array([HandSign[label.upper()].value for label in y])
-    except KeyError:
-        print("Invalid Key. Return None...")
-        return None
+    mapping = {"rock": 0, "paper": 1, "scissors": 2}
+    y_norm = [str(lbl).strip().lower() for lbl in y]
+    return np.array([mapping[lbl] for lbl in y_norm if lbl in mapping], dtype=np.int64)
 
 def toLabelHandSigns(y_pred):
     '''
@@ -95,7 +86,6 @@ def prepareDataset(X, y):
 
 
 
-
 ##################################  PREDICT AND EVALUATE MODEL FUNCTIONS     ################################## 
 def evaluateKFold(model, X, y, normalizer, numEpochs, batchSize):
     k: int = 10
@@ -116,7 +106,16 @@ def evaluateKFold(model, X, y, normalizer, numEpochs, batchSize):
 
     print(f'Average Test Accuracy with KFold: {np.mean(accuracies) * 100:.2f}%')
 
-
+def predictLabels(model, X):
+    """
+    Predict hand sign from features X.
+    Returns: (label_str, confidence_float)
+    """
+    y_pred_distribution = model.predict(X, verbose=0)
+    pred_conf = float(np.max(y_pred_distribution))
+    pred_index = int(np.argmax(y_pred_distribution))
+    pred_label = toLabelHandSigns(np.array([pred_index]))[0]
+    return pred_label, pred_conf
 
 def runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize):    
     # Train the Model
@@ -140,7 +139,6 @@ def runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize):
 
     return y_pred_label
 
-
 def makeModel(inputDimension: int, normalizer):
     '''
     Create the model with 3 layers: 
@@ -151,10 +149,10 @@ def makeModel(inputDimension: int, normalizer):
     model = tf.keras.Sequential()
     model.add(normalizer)
     model.add(tf.keras.layers.Dense(64, input_dim=inputDimension, activation='relu'))
-    model.add(tf.keras.layers.Dense(32, activation='relu'))
+    model.add(tf.keras.layers.Dense(20, activation='relu'))
     model.add(tf.keras.layers.Dense(3, activation='softmax'))
 
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.00367), metrics=['accuracy'])
     return model
 
 def makeRandomModel(inputDimension, normalizer):
@@ -178,11 +176,9 @@ def makeRandomModel(inputDimension, normalizer):
     # Output layer
     model.add(tf.keras.layers.Dense(3, activation="softmax"))
 
-    model.compile(
-        loss="categorical_crossentropy",
-        optimizer=Adam(learning_rate=learning_rate),
-        metrics=["accuracy"],
-    )
+    model.compile(loss="categorical_crossentropy",
+                  optimizer=Adam(learning_rate=learning_rate),
+                  metrics=["accuracy"])
 
     # Return both model and the hyperparams for logging
     return model, {"hidden_units": hidden_units,
@@ -285,21 +281,30 @@ def plotAccuracyAndLoss(history):
 
     plt.show()
 
-
 ##################################  MAIN FUNCTION   ##################################
+
+
 def controller(path):
-    numEpochs: int = 50
-    batchSize: int = 32
+    """
+    Main controller to prepare dataset, train the model, and evaluate.
+    """
+    from sign_detection import prepareDataset, setUpNormalization, makeModel, runModel, comparePrediction, evaluateKFold
 
-    y, X = getDataset(path)
-    X_train, y_train, X_test, y_test= prepareDataset(X, y)
+    numEpochs = 50
+    batchSize = 32
+
+    y_str, y_onehot, X = getDataset(path, include_unknown=False)
+
+    X_train, y_train, X_test, y_test = prepareDataset(X, y_str)
+
     normalizer = setUpNormalization(X_train)
-
     model = makeModel(X.shape[1], normalizer)
-    y_pred = runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize)
 
-    comparePrediction(y_pred, y_test)
-    evaluateKFold(model, X, y, normalizer, numEpochs, batchSize)
+    y_pred_labels = runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize)
+
+    comparePrediction(y_pred_labels, y_test)
+
+    evaluateKFold(model, X, y_str, normalizer, numEpochs, batchSize)
 
 def randomController(path, plotAccuracies=0):
     y_str, X = getDataset(path)
