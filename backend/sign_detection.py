@@ -5,16 +5,17 @@ from enum import Enum
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Normalization
+from keras.optimizers import Adam
+from keras.layers import Normalization
 from sklearn.model_selection import KFold
-
+import random
+import os
 
 class HandSign(Enum):
     ROCK = 0
     PAPER = 1
     SCISSORS = 2
-    # UNKNOWN = 3       # Remove for now to test the model
+    # UNKNOWN = 3       
 
 def dataTranslator(inputData):
     # inputData is of type int[21][3]
@@ -39,7 +40,6 @@ def test():
         if len(sys.argv) > inputIdx and sys.argv[inputIdx] == "Dummy":
             print("Run another test")
 
-
 ##################################  CLEAN AND PREPARE THE DATASET     ##################################
 def setUpNormalization(X_train):
     normalizer = Normalization(axis = -1)
@@ -47,16 +47,9 @@ def setUpNormalization(X_train):
     return normalizer
 
 def toIntHandSign(y):
-    '''
-    Argument:   Label y in numpy array
-    Task:       Convert y labels from string ("rock", "paper", "scissor") to 
-                Integer for the category match with HandSign
-    '''
-    try:
-        return np.array([HandSign[label.upper()].value for label in y])
-    except KeyError:
-        print("Invalid Key. Return None...")
-        return None
+    mapping = {"rock": 0, "paper": 1, "scissors": 2}
+    y_norm = [str(lbl).strip().lower() for lbl in y]
+    return np.array([mapping[lbl] for lbl in y_norm if lbl in mapping], dtype=np.int64)
 
 def toLabelHandSigns(y_pred):
     '''
@@ -93,7 +86,6 @@ def prepareDataset(X, y):
 
 
 
-
 ##################################  PREDICT AND EVALUATE MODEL FUNCTIONS     ################################## 
 def evaluateKFold(model, X, y, normalizer, numEpochs, batchSize):
     k: int = 10
@@ -114,7 +106,16 @@ def evaluateKFold(model, X, y, normalizer, numEpochs, batchSize):
 
     print(f'Average Test Accuracy with KFold: {np.mean(accuracies) * 100:.2f}%')
 
-
+def predictLabels(model, X):
+    """
+    Predict hand sign from features X.
+    Returns: (label_str, confidence_float)
+    """
+    y_pred_distribution = model.predict(X, verbose=0)
+    pred_conf = float(np.max(y_pred_distribution))
+    pred_index = int(np.argmax(y_pred_distribution))
+    pred_label = toLabelHandSigns(np.array([pred_index]))[0]
+    return pred_label, pred_conf
 
 def runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize):    
     # Train the Model
@@ -138,7 +139,6 @@ def runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize):
 
     return y_pred_label
 
-
 def makeModel(inputDimension: int, normalizer):
     '''
     Create the model with 3 layers: 
@@ -149,25 +149,120 @@ def makeModel(inputDimension: int, normalizer):
     model = tf.keras.Sequential()
     model.add(normalizer)
     model.add(tf.keras.layers.Dense(64, input_dim=inputDimension, activation='relu'))
-    model.add(tf.keras.layers.Dense(32, activation='relu'))
+    model.add(tf.keras.layers.Dense(20, activation='relu'))
     model.add(tf.keras.layers.Dense(3, activation='softmax'))
 
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.005), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate = 0.00367), metrics=['accuracy'])
     return model
 
+def makeRandomModel(inputDimension, normalizer):
+    """
+    Create a model with random hyperparameters.
+    """
+    # Random hyperparameters
+    hidden_units = random.choice(range(64))
+    num_hidden_layers = random.choice(range(4))
+    activation = random.choice(["relu", "tanh"])
+    learning_rate = random.uniform(0.0005, 0.005)
 
-def getDataset(path):
-    '''
-    1. Read dataset from the csv as a Pandas DataFrame
-    2. Separate input vector (X_nparray) and labels (y)
-    3. Convert X and y from DataFrame/Series to numpy array
-    '''
-    data: pd.DataFrame = pd.read_csv(path, sep=",", usecols=range(0, 64))
-    y: pd.DataFrame = data["label"]
-    X: pd.DataFrame = data.iloc[:, 1:]
-    X_nparray = X.to_numpy()
-    y_nparray = y.to_numpy()
-    return y_nparray, X_nparray
+    model = tf.keras.Sequential()
+    model.add(normalizer)
+    model.add(tf.keras.layers.Dense(64, input_dim=inputDimension, activation='relu'))
+
+    # Add hidden layers
+    for _ in range(num_hidden_layers):
+        model.add(tf.keras.layers.Dense(hidden_units, activation=activation))
+
+    # Output layer
+    model.add(tf.keras.layers.Dense(3, activation="softmax"))
+
+    model.compile(
+        loss="categorical_crossentropy",
+        optimizer=Adam(learning_rate=learning_rate),
+        metrics=["accuracy"],
+    )
+
+    # Return both model and the hyperparams for logging
+    return model, {"hidden_units": hidden_units,
+                   "num_hidden_layers": num_hidden_layers,
+                   "activation": activation,
+                   "learning_rate": learning_rate }
+
+def train_multiple_models(X_train, y_train, X_test, y_test, normalizer, plotAccuracies):
+    import os
+    os.makedirs("models", exist_ok=True)
+
+    results = []
+
+    for i in range(10):
+        print(f"\n==============================")
+        print(f"Training Model #{i+1}")
+        print("==============================")
+
+        model, hparams = makeRandomModel(X_train.shape[1], normalizer)
+
+        # Random training hyperparameters
+        numEpochs = random.choice(range(20, 50))
+        batchSize = random.choice(range(15))
+
+        print("Hyperparameters:", hparams)
+        print(f"Epochs: {numEpochs}, BatchSize: {batchSize}")
+
+        history = model.fit(X_train, 
+                            y_train,
+                            epochs=numEpochs,
+                            batch_size=batchSize,
+                            validation_split=0.1,
+                            verbose=0)
+
+        loss, acc = model.evaluate(X_test, y_test, verbose=0)
+        print(f"Test Accuracy: {acc:.4f}")
+
+        model_path = f"models/random_model_{i+1}.keras"
+        model.save(model_path)
+        print(f"Saved model to: {model_path}")
+
+        # Store: accuracy, model hyperparams, training hyperparams, model_path
+        results.append({"accuracy": acc,
+                        "model_hparams": hparams,
+                        "numEpochs": numEpochs,
+                        "batchSize": batchSize,
+                        "path": model_path})
+        
+        if plotAccuracies == 1:
+            plotAccuracyAndLoss(history)
+
+    # Sort by accuracy (best first)
+    results.sort(key=lambda x: x["accuracy"], reverse=True)
+    best = results[0]
+
+    print("\n\n===== BEST MODEL =====")
+    print("Accuracy:", best["accuracy"])
+    print("Model Hyperparams:", best["model_hparams"])
+    print("Epochs:", best["numEpochs"])
+    print("BatchSize:", best["batchSize"])
+    print("Saved:", best["path"])
+
+    return results, best
+
+def getDataset(path, include_unknown=False):
+    data = pd.read_csv(path, sep=",", header=0)
+
+    data = data.iloc[:, :64]
+
+    if not include_unknown:
+        data = data[data["label"].str.lower() != "unknown"]
+
+    data = data.dropna()
+
+    X = data.drop(columns=["label"]).to_numpy(dtype=np.float32)
+    y_str = data["label"].str.lower().to_numpy()
+
+    label_map = {"rock": 0, "paper": 1, "scissors": 2}
+    y_int = np.array([label_map[lbl] for lbl in y_str])
+    y_onehot = tf.keras.utils.to_categorical(y_int, num_classes=3)
+
+    return y_str, y_onehot, X
 
 
 ##################################  PLOT ACCURACY AND LOSS     ##################################    
@@ -194,29 +289,65 @@ def plotAccuracyAndLoss(history):
 
     plt.show()
 
-
 ##################################  MAIN FUNCTION   ##################################
-def controller(path):
-    numEpochs: int = 50
-    batchSize: int = 32
 
-    y, X = getDataset(path)
-    X_train, y_train, X_test, y_test= prepareDataset(X, y)
+
+def controller(path):
+    """
+    Main controller to prepare dataset, train the model, and evaluate.
+    """
+    from sign_detection import prepareDataset, setUpNormalization, makeModel, runModel, comparePrediction, evaluateKFold
+
+    numEpochs = 50
+    batchSize = 32
+
+    y_str, y_onehot, X = getDataset(path, include_unknown=False)
+
+    X_train, y_train, X_test, y_test = prepareDataset(X, y_str)
+
+    normalizer = setUpNormalization(X_train)
+    model = makeModel(X.shape[1], normalizer)
+
+    y_pred_labels = runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize)
+
+    comparePrediction(y_pred_labels, y_test)
+
+    evaluateKFold(model, X, y_str, normalizer, numEpochs, batchSize)
+
+def randomController(path, plotAccuracies):
+    y_str, _, X = getDataset(path, include_unknown=False)
+
+    X_train, y_train, X_test, y_test = prepareDataset(X, y_str)
     normalizer = setUpNormalization(X_train)
 
-    model = makeModel(X.shape[1], normalizer)
-    y_pred = runModel(model, X_train, y_train, X_test, y_test, numEpochs, batchSize)
+    _, best = train_multiple_models(X_train, y_train, X_test, y_test, normalizer, plotAccuracies)
+    best_model_path = best["path"]
 
-    comparePrediction(y_pred, y_test)
-    evaluateKFold(model, X, y, normalizer, numEpochs, batchSize)
+    best_model = tf.keras.models.load_model(best_model_path)
+    
+
+    evaluateKFold(best_model, X, y_str, normalizer, numEpochs=best["numEpochs"], batchSize=best["batchSize"])
 
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1].find("test") == 0:
         test()
+    elif len(sys.argv) > 1 and sys.argv[1].find("random") == 0:
+        if len(sys.argv) > 2 and sys.argv[2].find("plot") == 0:
+            randomController('hand_gesture_dataset.csv', 1)
+        else:
+            randomController('hand_gesture_dataset.csv', 0)
     else:
         controller('hand_gesture_dataset.csv')
 
 if __name__ == "__main__":
     main()
     print("Finished!")
+
+
+
+
+################################## HOW TO USE THIS FILE ##################################
+# Typical create 1 model: python3 sign_detection.py
+# Create 10 random models: python3 sign_detection.py random
+# Create 10 random models and plot each accuracy: python3 sign_detection.py random plot
