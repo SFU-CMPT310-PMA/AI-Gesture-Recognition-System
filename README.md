@@ -7,7 +7,7 @@
 - Check your Python version: `python --version`
 
 ## How to Run
-
+You MUST be in the project’s root directory to run the program as being in other directories (like backend or legacy) will mess with the relative pathing used for loading models.
 1. Create a virtual environment: `python -m venv venv311` or to use Python version 3.11 `py -3.11 -m venv venv311` <br>
    **Note:** Make sure to install Python 3.11 or replace 3.11 with your version. You can change the name of the virtual environment `venv311` as you like.
 2. Run the virtual environment: `.\venv311\Scripts\activate` or `source /venv311/bin/activate`
