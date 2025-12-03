@@ -290,8 +290,8 @@ def controller(path):
     """
     from sign_detection import prepareDataset, setUpNormalization, makeModel, runModel, comparePrediction, evaluateKFold
 
-    numEpochs = 50
-    batchSize = 32
+    numEpochs = 35
+    batchSize = 12
 
     y_str, X = getDataset(path)
 
