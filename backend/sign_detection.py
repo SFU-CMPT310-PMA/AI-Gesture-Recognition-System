@@ -293,7 +293,7 @@ def controller(path):
     numEpochs = 50
     batchSize = 32
 
-    y_str, y_onehot, X = getDataset(path, include_unknown=False)
+    y_str, X = getDataset(path)
 
     X_train, y_train, X_test, y_test = prepareDataset(X, y_str)
 
