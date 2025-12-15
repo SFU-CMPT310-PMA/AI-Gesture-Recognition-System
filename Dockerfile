@@ -1,11 +1,15 @@
 # Use slim Python base image
+# THIS IS BUILDING THE PYTHON BACKEND (in the BACKEND FOLDER)
+
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
 # Copy project files
-COPY . /app
+COPY ./backend /app/backend
+
+COPY ./requirements.txt /app/requirements.txt
 
 RUN apt-get update && apt-get install -y \
     libgl1 \
@@ -19,6 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Set environment variable to detect Docker
 ENV RUNNING_IN_DOCKER=1
 
+EXPOSE 8080
+
 # Set entrypoint
-ENTRYPOINT [ "python", "hand_tracking.py" ] 
+CMD [ "python", "/app/backend/server.py" ] 
 
